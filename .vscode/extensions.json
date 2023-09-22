@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "EditorConfig.EditorConfig",
+    "j-zeppenfeld.tab-indent-space-align",
+    "mike-lischke.vscode-antlr4",
+    "ms-vscode.cmake-tools",
+    "xaver.clang-format"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "files.exclude": {
+    "build": true,
+    "extern": true,
+    "vcpkg": true
+  },
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.buildDirectory": "${workspaceFolder}/build/${buildType}",
+  "cmake.generator": "Ninja",
+  "cmake.configureSettings": {
+    "CMAKE_VERBOSE_MAKEFILE": "ON",
+    "CMAKE_BUILD_TYPE": "${buildType}",
+    "CMAKE_CXX_COMPILER": "${buildKitTriple}"
+  },
+  "antlr4.generation": {
+    "mode": "external",
+    "outputDir": "../../build/debug/antlr4_generated_src/grammar",
+    "alternativeJar": "../../extern/antlr4/antlr-4.13.0-complete.jar",
+    "language": "Cpp",
+    "package": "rinha::grammar",
+    "listeners": true,
+    "visitors": false
+  },
+  "editor.tabSize": 4,
+  "[cpp]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "xaver.clang-format"
+  }
+}
