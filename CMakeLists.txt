@@ -23,5 +23,7 @@ enable_language(CXX)
 
 add_compile_options(-Wall)
 
+enable_testing()
+
 add_subdirectory(src/grammar)
 add_subdirectory(src/interpreter)

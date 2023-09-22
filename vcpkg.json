@@ -2,12 +2,17 @@
   "name": "rinha-de-compiler",
   "version-string": "0.0.1",
   "dependencies": [
-    "antlr4"
+    "antlr4",
+    "boost-test"
   ],
   "overrides": [
     {
       "name": "antlr4",
       "version": "4.13.0"
+    },
+    {
+      "name": "boost-test",
+      "version": "1.83.0"
     }
   ],
   "builtin-baseline": "6a349fe1fbea1e5fcda2e0775f555d829a5e82df"
