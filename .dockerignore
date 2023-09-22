@@ -1,0 +1,4 @@
+/build/
+/vcpkg/buildtrees/
+/vcpkg/packages/
+/vcpkg/vcpkg
