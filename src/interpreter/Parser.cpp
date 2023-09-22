@@ -379,8 +379,18 @@ namespace
 
 		void exitPrimaryStringRule(RinhaParser::PrimaryStringRuleContext* ctx) override
 		{
-			const auto& text = ctx->STRING()->getText();
-			newNode(ctx, StrValue(text.substr(1, text.length() - 2)));
+			const auto& rawText = ctx->STRING()->getText();
+			auto text = rawText.substr(1, rawText.length() - 2);
+
+			for (auto it = text.begin(); it != text.end();)
+			{
+				if (*it == '\\')
+					it = text.erase(it, it + 1);
+
+				++it;
+			}
+
+			newNode(ctx, StrValue(text));
 		}
 
 		void enterPrimaryVarRule(RinhaParser::PrimaryVarRuleContext* ctx) override { }
