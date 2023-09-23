@@ -289,12 +289,17 @@ namespace rinha::interpreter
 					{
 						return IntValue(firstInt->getValue() + secondInt->getValue());
 					}
-					else
+					else if ((std::holds_alternative<StrValue>(firstValue) ||
+								 std::holds_alternative<IntValue>(firstValue)) &&
+						(std::holds_alternative<StrValue>(secondValue) ||
+							std::holds_alternative<IntValue>(secondValue)))
 					{
 						const auto& firstString = std::visit([](auto&& arg) { return arg.toString(); }, firstValue);
 						const auto& secondString = std::visit([](auto&& arg) { return arg.toString(); }, secondValue);
 						return StrValue(firstString + secondString);
 					}
+					else
+						throw RinhaException("Invalid datatypes with operator '+'.");
 
 				case Op::SUB:
 					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
@@ -304,7 +309,7 @@ namespace rinha::interpreter
 						return IntValue(firstInt->getValue() - secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in subtraction.");
+						throw RinhaException("Invalid datatypes with operator '-'.");
 
 				case Op::MUL:
 					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
@@ -314,7 +319,7 @@ namespace rinha::interpreter
 						return IntValue(firstInt->getValue() * secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in multiplication.");
+						throw RinhaException("Invalid datatypes with operator '*'.");
 
 				case Op::DIV:
 					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
@@ -324,7 +329,7 @@ namespace rinha::interpreter
 						return IntValue(firstInt->getValue() / secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in division.");
+						throw RinhaException("Invalid datatypes with operator '/'.");
 
 				case Op::REM:
 					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
@@ -334,14 +339,10 @@ namespace rinha::interpreter
 						return IntValue(firstInt->getValue() % secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in remainder.");
+						throw RinhaException("Invalid datatypes with operator '%'.");
 
 				case Op::EQ:
-					return BoolValue(firstValue == secondValue);
-
 				case Op::NEQ:
-					return BoolValue(firstValue != secondValue);
-
 				case Op::LT:
 				case Op::GT:
 				case Op::LTE:
@@ -359,10 +360,16 @@ namespace rinha::interpreter
 					else if (const auto& firstVal = std::get_if<StrValue>(&firstValue))
 						cmp = firstVal->getValue() <=> std::get_if<StrValue>(&secondValue)->getValue();
 					else
-						return BoolValue(false);
+						throw RinhaException("Invalid datatypes with comparare operator.");
 
 					switch (op)
 					{
+						case Op::EQ:
+							return BoolValue(cmp == std::strong_ordering::equal);
+
+						case Op::NEQ:
+							return BoolValue(cmp != std::strong_ordering::equal);
+
 						case Op::LT:
 							return BoolValue(cmp == std::strong_ordering::less);
 
@@ -379,14 +386,7 @@ namespace rinha::interpreter
 							assert(false);
 					}
 
-					if (const auto& firstVal = std::get_if<BoolValue>(&firstValue))
-						return BoolValue(firstVal->getValue() < std::get_if<BoolValue>(&secondValue)->getValue());
-					else if (const auto& firstVal = std::get_if<IntValue>(&firstValue))
-						return BoolValue(firstVal->getValue() < std::get_if<IntValue>(&secondValue)->getValue());
-					else if (const auto& firstVal = std::get_if<StrValue>(&firstValue))
-						return BoolValue(firstVal->getValue() < std::get_if<StrValue>(&secondValue)->getValue());
-
-					return BoolValue(false);
+					break;
 				}
 
 				case Op::AND:
@@ -397,7 +397,7 @@ namespace rinha::interpreter
 						return BoolValue(firstInt->getValue() && secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in subtraction.");
+						throw RinhaException("Invalid datatypes with operator '&&'.");
 
 				case Op::OR:
 					if (const auto firstInt = std::get_if<BoolValue>(&firstValue),
@@ -407,7 +407,7 @@ namespace rinha::interpreter
 						return BoolValue(firstInt->getValue() || secondInt->getValue());
 					}
 					else
-						throw RinhaException("Invalid datatypes in subtraction.");
+						throw RinhaException("Invalid datatypes with operator '||'.");
 			}
 
 			assert(false);
