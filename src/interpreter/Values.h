@@ -12,6 +12,8 @@ namespace rinha::interpreter
 	class Context;
 	class FnNode;
 
+	using Value = std::variant<class BoolValue, class IntValue, class StrValue, class FnValue, class TupleValue>;
+
 	class BoolValue final
 	{
 	public:
@@ -19,8 +21,6 @@ namespace rinha::interpreter
 			: value(value)
 		{
 		}
-
-		bool operator==(const BoolValue& o) const noexcept = default;
 
 		auto getValue() const noexcept
 		{
@@ -44,8 +44,6 @@ namespace rinha::interpreter
 		{
 		}
 
-		bool operator==(const IntValue& o) const noexcept = default;
-
 		auto getValue() const noexcept
 		{
 			return value;
@@ -67,8 +65,6 @@ namespace rinha::interpreter
 			: value(value)
 		{
 		}
-
-		bool operator==(const StrValue& o) const noexcept = default;
 
 		auto getValue() const noexcept
 		{
@@ -93,8 +89,6 @@ namespace rinha::interpreter
 		{
 		}
 
-		bool operator==(const FnValue& o) const noexcept = default;
-
 		auto getValue() const noexcept
 		{
 			return node;
@@ -115,8 +109,6 @@ namespace rinha::interpreter
 		std::shared_ptr<Context> context;
 	};
 
-	using Value = std::variant<BoolValue, IntValue, StrValue, FnValue, class TupleValue>;
-
 	class TupleValue final
 	{
 	public:
@@ -125,8 +117,6 @@ namespace rinha::interpreter
 			  second(std::make_shared<Value>(second))
 		{
 		}
-
-		bool operator==(const TupleValue& o) const noexcept = default;
 
 		auto getFirst() const noexcept
 		{

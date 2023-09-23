@@ -17,9 +17,9 @@ namespace rinha::interpreter
 		struct Hidden;
 
 	public:
-		Parser(std::unique_ptr<std::istream> _stream);
+		explicit Parser(std::unique_ptr<std::istream> _stream);
 
-		Parser(const std::string& str)
+		explicit Parser(const std::string& str)
 			: Parser(std::make_unique<std::istringstream>(str))
 		{
 		}

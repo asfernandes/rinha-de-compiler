@@ -23,7 +23,7 @@ namespace rinha::interpreter
 		}
 
 	private:
-		const TermNode* term = nullptr;
+		const TermNode* term;
 		std::unordered_set<std::shared_ptr<Node>> nodes;
 	};
 }  // namespace rinha::interpreter

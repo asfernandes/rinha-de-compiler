@@ -172,12 +172,12 @@ namespace rinha::interpreter
 		}
 
 	public:
-		const auto& getParameters() const noexcept
+		auto& getParameters() const noexcept
 		{
 			return parameters;
 		}
 
-		const auto& getBody() const noexcept
+		auto getBody() const noexcept
 		{
 			return body;
 		}
@@ -219,7 +219,7 @@ namespace rinha::interpreter
 				const auto calleeContext = std::make_shared<Context>(calleeValueFn->getContext());
 				auto argumentIt = arguments.begin();
 
-				for (const auto& parameter : fnNode->getParameters())
+				for (const auto parameter : fnNode->getParameters())
 				{
 					calleeContext->createVariable(parameter->name);
 					calleeContext->setVariable(parameter->name, (*argumentIt)->execute(context));
