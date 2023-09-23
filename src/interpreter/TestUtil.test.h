@@ -4,6 +4,7 @@
 #include "./Parser.h"
 #include "./Context.h"
 #include "./Diagnostic.h"
+#include "./Environment.test.h"
 #include <memory>
 #include <optional>
 #include <string>
@@ -12,6 +13,7 @@ namespace rinha::interpreter
 {
 	struct TestResult
 	{
+		std::shared_ptr<TestEnvironment> environment;
 		std::optional<Value> value;
 		std::shared_ptr<Diagnostics> diagnostics;
 	};
@@ -22,7 +24,9 @@ namespace rinha::interpreter
 		static TestResult run(const std::string& source)
 		{
 			Parser parser(source);
+
 			TestResult result;
+			result.environment = std::make_shared<TestEnvironment>();
 
 			result.diagnostics = parser.getDiagnostics();
 
@@ -31,7 +35,7 @@ namespace rinha::interpreter
 				const auto parsedSource = parser.getParsedSource();
 				const auto term = parsedSource->getTerm();
 
-				const auto context = std::make_shared<Context>();
+				const auto context = std::make_shared<Context>(result.environment);
 				term->compile(context);
 				result.value = term->execute(context);
 			}

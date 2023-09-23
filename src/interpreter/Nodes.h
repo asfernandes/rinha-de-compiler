@@ -4,9 +4,7 @@
 #include "./Context.h"
 #include "./Values.h"
 #include "./Exceptions.h"
-#include <iostream>
 #include <optional>
-#include <ostream>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -558,7 +556,7 @@ namespace rinha::interpreter
 		{
 			const auto& value = arg->execute(context);
 
-			std::visit([](auto&& arg) { std::cout << arg.toString() << std::endl; }, value);
+			std::visit([&](auto&& arg) { context->getEnvironment()->printLine(arg.toString()); }, value);
 
 			return value;
 		}

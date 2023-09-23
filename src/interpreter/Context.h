@@ -1,6 +1,7 @@
 #ifndef RINHA_INTERPRETER_CONTEXT_H
 #define RINHA_INTERPRETER_CONTEXT_H
 
+#include "./Environment.h"
 #include "./Exceptions.h"
 #include "./Values.h"
 #include <optional>
@@ -14,8 +15,14 @@ namespace rinha::interpreter
 	class Context final
 	{
 	public:
-		explicit Context(std::shared_ptr<Context> outer = nullptr)
-			: outer(outer)
+		explicit Context(std::shared_ptr<Environment> environment)
+			: environment(std::move(environment))
+		{
+		}
+
+		explicit Context(std::shared_ptr<Context> outer)
+			: environment(outer->environment),
+			  outer(std::move(outer))
 		{
 		}
 
@@ -43,7 +50,13 @@ namespace rinha::interpreter
 			variables[name] = value;
 		}
 
+		auto getEnvironment() noexcept
+		{
+			return environment;
+		}
+
 	private:
+		std::shared_ptr<Environment> environment;
 		std::shared_ptr<Context> outer;
 		std::unordered_map<std::string, std::optional<Value>> variables;
 	};
