@@ -17,7 +17,10 @@ RUN apt update && \
 
 COPY . /src
 
-RUN cmake -S /src -B /build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -G Ninja && \
+WORKDIR /src
+
+RUN ([ -f ./vcpkg/bootstrap-vcpkg.sh ] || git submodule update --init) && \
+	cmake -S . -B /build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -G Ninja && \
 	cmake --build /build/Release/ && \
 	mkdir -p /app/bin && \
 	cp /build/Release/out/bin/rinha-de-compiler /app/bin/
