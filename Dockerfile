@@ -30,4 +30,4 @@ FROM ubuntu:jammy
 
 COPY --from=builder /app /app
 
-CMD [ "/app/bin/rinha-de-compiler", "/var/rinha/source.rinha"]
+CMD ulimit -s unlimited ; /app/bin/rinha-de-compiler /var/rinha/source.rinha
