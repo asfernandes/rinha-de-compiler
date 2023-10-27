@@ -65,30 +65,42 @@ namespace rinha::interpreter
 		{
 			const auto self = static_cast<This*>(this);
 
-			if (const auto literalNode = nodeAs<LiteralNode>(node))
-				return self->visitLiteralNode(context, literalNode.value());
-			else if (const auto tupleNode = nodeAs<TupleNode>(node))
-				return self->visitTupleNode(context, tupleNode.value());
-			else if (const auto fnNode = nodeAs<FnNode>(node))
-				return self->visitFnNode(context, fnNode.value());
-			else if (const auto callNode = nodeAs<CallNode>(node))
-				return self->visitCallNode(context, callNode.value());
-			else if (const auto binaryOpNode = nodeAs<BinaryOpNode>(node))
-				return self->visitBinaryOpNode(context, binaryOpNode.value());
-			else if (const auto ifNode = nodeAs<IfNode>(node))
-				return self->visitIfNode(context, ifNode.value());
-			else if (const auto tupleIndexNode = nodeAs<TupleIndexNode>(node))
-				return self->visitTupleIndexNode(context, tupleIndexNode.value());
-			else if (const auto varNode = nodeAs<VarNode>(node))
-				return self->visitVarNode(context, varNode.value());
-			else if (const auto letNode = nodeAs<LetNode>(node))
-				return self->visitLetNode(context, letNode.value());
-			else if (const auto printNode = nodeAs<PrintNode>(node))
-				return self->visitPrintNode(context, printNode.value());
-			else
+			switch (node->getType())
 			{
-				assert(false);
-				throw std::logic_error("Invalid node type for visit");
+				case TermNode::Type::LITERAL:
+					return self->visitLiteralNode(context, static_cast<const LiteralNode*>(node));
+
+				case TermNode::Type::TUPLE:
+					return self->visitTupleNode(context, static_cast<const TupleNode*>(node));
+
+				case TermNode::Type::FN:
+					return self->visitFnNode(context, static_cast<const FnNode*>(node));
+
+				case TermNode::Type::CALL:
+					return self->visitCallNode(context, static_cast<const CallNode*>(node));
+
+				case TermNode::Type::BINARY_OP:
+					return self->visitBinaryOpNode(context, static_cast<const BinaryOpNode*>(node));
+
+				case TermNode::Type::IF:
+					return self->visitIfNode(context, static_cast<const IfNode*>(node));
+
+				case TermNode::Type::TUPLE_INDEX:
+					return self->visitTupleIndexNode(context, static_cast<const TupleIndexNode*>(node));
+
+				case TermNode::Type::VAR:
+					return self->visitVarNode(context, static_cast<const VarNode*>(node));
+
+				case TermNode::Type::LET:
+					return self->visitLetNode(context, static_cast<const LetNode*>(node));
+
+				case TermNode::Type::PRINT:
+					return self->visitPrintNode(context, static_cast<const PrintNode*>(node));
+
+				default:
+					assert(false);
+
+					throw std::logic_error("Invalid node type for visit");
 			}
 		}
 	};
