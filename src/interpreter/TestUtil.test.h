@@ -1,6 +1,7 @@
 #ifndef RINHA_INTERPRETER_TEST_UTIL_H
 #define RINHA_INTERPRETER_TEST_UTIL_H
 
+#include "./CoroutineExecutionStrategy.h"
 #include "./Parser.h"
 #include "./Context.h"
 #include "./Diagnostic.h"
@@ -35,7 +36,8 @@ namespace rinha::interpreter
 			{
 				const auto parsedSource = parser.getParsedSource();
 
-				result.value = Environment::run(result.environment, std::move(parsedSource));
+				CoroutineExecutionStrategy executionStrategy;
+				result.value = executionStrategy.run(result.environment, std::move(parsedSource));
 			}
 
 			return result;

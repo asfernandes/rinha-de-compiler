@@ -5,7 +5,6 @@
 #include "./Values.h"
 #include "./Exceptions.h"
 #include "./Environment.h"
-#include "./Task.h"
 #include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <boost/smart_ptr/make_local_shared.hpp>
 #include <optional>
@@ -81,7 +80,7 @@ namespace rinha::interpreter
 	class TermNode : public Node
 	{
 	public:
-		enum class Type
+		enum class Type : uint8_t
 		{
 			LITERAL,
 			TUPLE,
@@ -117,7 +116,7 @@ namespace rinha::interpreter
 			co_return value;
 		}
 
-	private:
+	public:
 		const Value value;
 	};
 
@@ -144,7 +143,7 @@ namespace rinha::interpreter
 			co_return TupleValue(firstValue, secondValue);
 		}
 
-	private:
+	public:
 		const TermNode* const first;
 		const TermNode* const second;
 	};
@@ -186,7 +185,7 @@ namespace rinha::interpreter
 			return body;
 		}
 
-	private:
+	public:
 		const std::vector<const ReferenceNode*> parameters;
 		const TermNode* const body;
 	};
@@ -238,7 +237,7 @@ namespace rinha::interpreter
 			throw RinhaException("Cannot call a non-function.");
 		}
 
-	private:
+	public:
 		const TermNode* const callee;
 		const std::vector<const TermNode*> arguments;
 	};
@@ -418,7 +417,7 @@ namespace rinha::interpreter
 			throw std::logic_error("Invalid binary op");
 		}
 
-	private:
+	public:
 		const Op op;
 		const TermNode* const first;
 		const TermNode* const second;
@@ -457,7 +456,7 @@ namespace rinha::interpreter
 			throw RinhaException("Invalid datatype in if.");
 		}
 
-	private:
+	public:
 		const TermNode* const condition;
 		const TermNode* const then;
 		const TermNode* const otherwise;
@@ -490,7 +489,7 @@ namespace rinha::interpreter
 			throw RinhaException("Invalid datatype in tuple function.");
 		}
 
-	private:
+	public:
 		const TermNode* const arg;
 		const unsigned index;
 	};
@@ -511,7 +510,7 @@ namespace rinha::interpreter
 			co_return context->getVariable(reference->name);
 		}
 
-	private:
+	public:
 		const ReferenceNode* reference;
 	};
 
@@ -541,7 +540,7 @@ namespace rinha::interpreter
 			co_return co_await next->execute(context);
 		}
 
-	private:
+	public:
 		const ReferenceNode* reference;
 		const TermNode* const value;
 		const TermNode* const next;
@@ -570,7 +569,7 @@ namespace rinha::interpreter
 			co_return value;
 		}
 
-	private:
+	public:
 		const TermNode* const arg;
 	};
 }  // namespace rinha::interpreter

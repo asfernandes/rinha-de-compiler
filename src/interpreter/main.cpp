@@ -1,3 +1,4 @@
+#include "./CoroutineExecutionStrategy.h"
 #include "./Environment.h"
 #include "./ParsedSource.h"
 #include "./Parser.h"
@@ -56,7 +57,9 @@ namespace rinha::interpreter
 
 		const auto parsedSource = parser.getParsedSource();
 		const auto environment = make_local_shared<StdEnvironment>();
-		Environment::run(std::move(environment), std::move(parsedSource));
+
+		CoroutineExecutionStrategy executionStrategy;
+		executionStrategy.run(std::move(environment), std::move(parsedSource));
 
 		return 0;
 	}

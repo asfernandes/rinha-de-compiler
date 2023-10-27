@@ -15,9 +15,6 @@ namespace rinha::interpreter
 	class Environment
 	{
 	public:
-		static Value run(
-			boost::local_shared_ptr<Environment> environment, boost::local_shared_ptr<ParsedSource> parsedSource);
-
 		virtual void printLine(const std::string& s) = 0;
 	};
 
