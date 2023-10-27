@@ -6,6 +6,8 @@
 #include "./Exceptions.h"
 #include "./Environment.h"
 #include "./Task.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -95,8 +97,8 @@ namespace rinha::interpreter
 
 	public:
 		virtual Type getType() const = 0;
-		virtual void compile(std::shared_ptr<Context> context) const = 0;
-		virtual Task execute(std::shared_ptr<Context> context) const = 0;
+		virtual void compile(boost::local_shared_ptr<Context> context) const = 0;
+		virtual Task execute(boost::local_shared_ptr<Context> context) const = 0;
 	};
 
 	class LiteralNode final : public TypedNode<TermNode, TermNode::Type::LITERAL>
@@ -108,9 +110,9 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override { }
+		void compile(boost::local_shared_ptr<Context> context) const override { }
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			co_return value;
 		}
@@ -129,13 +131,13 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			first->compile(context);
 			second->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			const auto& firstValue = co_await first->execute(context);
 			const auto& secondValue = co_await second->execute(context);
@@ -157,7 +159,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			std::unordered_set<std::string> set;
 
@@ -168,7 +170,7 @@ namespace rinha::interpreter
 			}
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			co_return FnValue(this, context);
 		}
@@ -199,7 +201,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			callee->compile(context);
 
@@ -207,7 +209,7 @@ namespace rinha::interpreter
 				argument->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			const auto& calleeValue = co_await callee->execute(context);
 
@@ -218,7 +220,7 @@ namespace rinha::interpreter
 				if (fnNode->getParameters().size() != arguments.size())
 					throw RinhaException("Arguments and parameters count do not match.");
 
-				const auto calleeContext = std::make_shared<Context>(calleeValueFn->getContext());
+				const auto calleeContext = boost::make_local_shared<Context>(calleeValueFn->getContext());
 				auto argumentIt = arguments.begin();
 
 				for (const auto parameter : fnNode->getParameters())
@@ -270,13 +272,13 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			first->compile(context);
 			second->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			// TODO: Short circuit with logical operators.
 			const auto& firstValue = co_await first->execute(context);
@@ -433,14 +435,14 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			condition->compile(context);
 			then->compile(context);
 			otherwise->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			const auto& conditionValue = co_await condition->execute(context);
 
@@ -473,12 +475,12 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			arg->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			const auto& value = co_await arg->execute(context);
 
@@ -502,9 +504,9 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override { }
+		void compile(boost::local_shared_ptr<Context> context) const override { }
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			co_return context->getVariable(reference->name);
 		}
@@ -524,7 +526,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			context->createVariable(reference->name);
 
@@ -532,7 +534,7 @@ namespace rinha::interpreter
 			next->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			context->setVariable(reference->name, co_await value->execute(context));
 
@@ -554,12 +556,12 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			arg->compile(context);
 		}
 
-		Task execute(std::shared_ptr<Context> context) const override
+		Task execute(boost::local_shared_ptr<Context> context) const override
 		{
 			const auto& value = co_await arg->execute(context);
 

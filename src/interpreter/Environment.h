@@ -3,6 +3,7 @@
 
 #include "./ParsedSource.h"
 #include "./Values.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -14,7 +15,8 @@ namespace rinha::interpreter
 	class Environment
 	{
 	public:
-		static Value run(std::shared_ptr<Environment> environment, std::shared_ptr<ParsedSource> parsedSource);
+		static Value run(
+			boost::local_shared_ptr<Environment> environment, boost::local_shared_ptr<ParsedSource> parsedSource);
 
 		virtual void printLine(const std::string& s) = 0;
 	};

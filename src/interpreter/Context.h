@@ -3,6 +3,7 @@
 
 #include "./Exceptions.h"
 #include "./Values.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -15,12 +16,12 @@ namespace rinha::interpreter
 	class Context final
 	{
 	public:
-		explicit Context(std::shared_ptr<Environment> environment)
+		explicit Context(boost::local_shared_ptr<Environment> environment)
 			: environment(std::move(environment))
 		{
 		}
 
-		explicit Context(std::shared_ptr<Context> outer)
+		explicit Context(boost::local_shared_ptr<Context> outer)
 			: environment(outer->environment),
 			  outer(std::move(outer))
 		{
@@ -56,8 +57,8 @@ namespace rinha::interpreter
 		}
 
 	private:
-		std::shared_ptr<Environment> environment;
-		std::shared_ptr<Context> outer;
+		boost::local_shared_ptr<Environment> environment;
+		boost::local_shared_ptr<Context> outer;
 		std::unordered_map<std::string, std::optional<Value>> variables;
 	};
 }  // namespace rinha::interpreter

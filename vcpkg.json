@@ -3,6 +3,7 @@
   "version-string": "0.0.1",
   "dependencies": [
     "antlr4",
+    "boost-smart-ptr",
     "boost-test"
   ],
   "overrides": [

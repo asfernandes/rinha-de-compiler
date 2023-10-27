@@ -1,14 +1,17 @@
 #include "./Environment.h"
 #include "./ParsedSource.h"
 #include "./Parser.h"
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <utility>
+
+// boost/smart_ptr/make_local_shared
+using boost::make_local_shared;
 
 // exception
 using std::exception;
@@ -22,9 +25,6 @@ using std::ifstream;
 // iostream
 using std::cerr;
 using std::cout;
-
-// memory
-using std::make_shared;
 
 // ostream
 using std::endl;
@@ -55,7 +55,7 @@ namespace rinha::interpreter
 			return 1;
 
 		const auto parsedSource = parser.getParsedSource();
-		const auto environment = make_shared<StdEnvironment>();
+		const auto environment = make_local_shared<StdEnvironment>();
 		Environment::run(std::move(environment), std::move(parsedSource));
 
 		return 0;

@@ -5,7 +5,8 @@
 #include "./Context.h"
 #include "./Diagnostic.h"
 #include "./Environment.test.h"
-#include <memory>
+#include <boost/smart_ptr/local_shared_ptr.hpp>
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <optional>
 #include <string>
 
@@ -13,9 +14,9 @@ namespace rinha::interpreter
 {
 	struct TestResult
 	{
-		std::shared_ptr<TestEnvironment> environment;
+		boost::local_shared_ptr<TestEnvironment> environment;
 		std::optional<Value> value;
-		std::shared_ptr<Diagnostics> diagnostics;
+		boost::local_shared_ptr<Diagnostics> diagnostics;
 	};
 
 	class TestUtil final
@@ -26,7 +27,7 @@ namespace rinha::interpreter
 			Parser parser(source);
 
 			TestResult result;
-			result.environment = std::make_shared<TestEnvironment>();
+			result.environment = boost::make_local_shared<TestEnvironment>();
 
 			result.diagnostics = parser.getDiagnostics();
 

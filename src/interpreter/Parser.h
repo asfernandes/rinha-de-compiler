@@ -4,8 +4,8 @@
 #include "./Nodes.h"
 #include "./ParsedSource.h"
 #include "./Diagnostic.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <istream>
-#include <memory>
 #include <sstream>
 #include <string>
 
@@ -39,8 +39,8 @@ namespace rinha::interpreter
 
 	private:
 		std::unique_ptr<std::istream> stream;
-		std::shared_ptr<ParsedSource> parsedSource;
-		std::shared_ptr<Diagnostics> diagnostics;
+		boost::local_shared_ptr<ParsedSource> parsedSource;
+		boost::local_shared_ptr<Diagnostics> diagnostics;
 		const TermNode* rootTerm = nullptr;
 		std::unique_ptr<Hidden> hidden;
 	};

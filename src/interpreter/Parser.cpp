@@ -4,6 +4,8 @@
 #include "grammar/RinhaParser.h"
 #include "grammar/RinhaBaseListener.h"
 #include "antlr4-runtime.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -20,6 +22,12 @@ using rinha::grammar::RinhaLexer;
 using rinha::grammar::RinhaListener;
 using rinha::grammar::RinhaParser;
 
+// boost/smart_ptr/local_shared_ptr
+using boost::local_shared_ptr;
+
+// boost/smart_ptr/make_local_shared
+using boost::make_local_shared;
+
 // algorithm
 namespace ranges = std::ranges;
 
@@ -33,9 +41,7 @@ using std::istream;
 using std::inserter;
 
 // memory
-using std::make_shared;
 using std::make_unique;
-using std::shared_ptr;
 using std::unique_ptr;
 
 // string
@@ -447,8 +453,8 @@ namespace
 
 	public:
 		template <typename T>
-		requires derived_from<T, antlr4::ParserRuleContext> NodeFromContextType<T>
-		*getNode(T* ctx)
+		requires derived_from<T, antlr4::ParserRuleContext>
+		NodeFromContextType<T>* getNode(T* ctx)
 		{
 			if (!ctx)
 				return nullptr;
@@ -458,12 +464,12 @@ namespace
 
 	private:
 		template <typename T>
-		requires derived_from<T, antlr4::ParserRuleContext> NodeFromContextType<T>
-		*newNode(T* ctx, auto&&... args)
+		requires derived_from<T, antlr4::ParserRuleContext>
+		NodeFromContextType<T>* newNode(T* ctx, auto&&... args)
 		{
 			assert(!ctxNodeMap.contains(ctx));
 
-			auto node = make_shared<NodeFromContextType<T>>(std::forward<decltype(args)>(args)...);
+			auto node = make_local_shared<NodeFromContextType<T>>(std::forward<decltype(args)>(args)...);
 
 			const antlr4::Token* startToken = ctx->getStart();
 			node->startLine = startToken->getLine();
@@ -476,8 +482,7 @@ namespace
 		template <typename T, typename U>
 		requires derived_from<T, antlr4::ParserRuleContext> && derived_from<U, antlr4::ParserRuleContext> &&
 			derived_from<NodeFromContextType<U>, NodeFromContextType<T>>
-				NodeFromContextType<T>
-		*refNode(T* ctx, U* referencedCtx)
+		NodeFromContextType<T>* refNode(T* ctx, U* referencedCtx)
 		{
 			assert(!ctxNodeMap.contains(ctx));
 
@@ -491,13 +496,13 @@ namespace
 		}
 
 	public:
-		unordered_map<antlr4::ParserRuleContext*, shared_ptr<Node>> ctxNodeMap;
+		unordered_map<antlr4::ParserRuleContext*, local_shared_ptr<Node>> ctxNodeMap;
 	};
 
 	class ErrorListener : public antlr4::BaseErrorListener
 	{
 	public:
-		ErrorListener(shared_ptr<Diagnostics> diagnostics)
+		ErrorListener(local_shared_ptr<Diagnostics> diagnostics)
 			: diagnostics(std::move(diagnostics))
 		{
 		}
@@ -510,7 +515,7 @@ namespace
 		}
 
 	private:
-		shared_ptr<Diagnostics> diagnostics;
+		local_shared_ptr<Diagnostics> diagnostics;
 	};
 }  // namespace
 
@@ -519,7 +524,7 @@ namespace rinha::interpreter
 {
 	struct Parser::Hidden
 	{
-		Hidden(istream& stream, shared_ptr<Diagnostics> diagnostics)
+		Hidden(istream& stream, local_shared_ptr<Diagnostics> diagnostics)
 			: antlrInputStream(stream),
 			  errorListener(std::move(diagnostics))
 		{
@@ -544,18 +549,18 @@ namespace rinha::interpreter
 
 	Parser::Parser(unique_ptr<istream> _stream)
 		: stream(std::move(_stream)),
-		  diagnostics(make_shared<Diagnostics>()),
+		  diagnostics(make_local_shared<Diagnostics>()),
 		  hidden(make_unique<Hidden>(*stream.get(), diagnostics))
 	{
 		auto root = hidden->parser.root();
 		rootTerm = hidden->listener.getNode(root);
 
-		unordered_set<shared_ptr<Node>> nodeSet;
+		unordered_set<local_shared_ptr<Node>> nodeSet;
 
 		ranges::transform(
 			hidden->listener.ctxNodeMap, inserter(nodeSet, nodeSet.begin()), [](auto& pair) { return pair.second; });
 
-		parsedSource = make_shared<ParsedSource>(rootTerm, std::move(nodeSet));
+		parsedSource = make_local_shared<ParsedSource>(rootTerm, std::move(nodeSet));
 	}
 
 	Parser::~Parser() = default;
