@@ -19,7 +19,10 @@ COPY . /src
 
 WORKDIR /src
 
-RUN ([ -f ./vcpkg/bootstrap-vcpkg.sh ] || git submodule update --init) && \
+ENV VCPKG_DEFAULT_BINARY_CACHE=/vcpkg-cache
+
+RUN --mount=type=cache,target=$VCPKG_DEFAULT_BINARY_CACHE \
+	([ -f ./vcpkg/bootstrap-vcpkg.sh ] || git submodule update --init) && \
 	cmake -S . -B /build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -G Ninja && \
 	cmake --build /build/Release/ && \
 	mkdir -p /app/bin && \

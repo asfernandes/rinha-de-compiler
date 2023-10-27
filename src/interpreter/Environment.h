@@ -1,12 +1,17 @@
 #ifndef RINHA_INTERPRETER_ENVIRONMENT_H
 #define RINHA_INTERPRETER_ENVIRONMENT_H
 
+#include "./ParsedSource.h"
+#include "./Values.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <iostream>
 #include <ostream>
 #include <string>
 
 namespace rinha::interpreter
 {
+	class ParsedSource;
+
 	class Environment
 	{
 	public:

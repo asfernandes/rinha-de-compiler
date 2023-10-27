@@ -1,9 +1,11 @@
 #ifndef RINHA_INTERPRETER_VALUES_H
 #define RINHA_INTERPRETER_VALUES_H
 
+#include <boost/smart_ptr/local_shared_ptr.hpp>
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <cstdint>
-#include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 
 
@@ -17,7 +19,7 @@ namespace rinha::interpreter
 	class BoolValue final
 	{
 	public:
-		explicit BoolValue(bool value)
+		explicit BoolValue(bool value) noexcept
 			: value(value)
 		{
 		}
@@ -39,7 +41,7 @@ namespace rinha::interpreter
 	class IntValue final
 	{
 	public:
-		explicit IntValue(int32_t value)
+		explicit IntValue(int32_t value) noexcept
 			: value(value)
 		{
 		}
@@ -61,6 +63,11 @@ namespace rinha::interpreter
 	class StrValue final
 	{
 	public:
+		explicit StrValue(std::string&& value) noexcept
+			: value(std::move(value))
+		{
+		}
+
 		explicit StrValue(const std::string& value)
 			: value(value)
 		{
@@ -83,9 +90,9 @@ namespace rinha::interpreter
 	class FnValue final
 	{
 	public:
-		explicit FnValue(const FnNode* node, std::shared_ptr<Context> context)
+		explicit FnValue(const FnNode* node, boost::local_shared_ptr<Context> context) noexcept
 			: node(node),
-			  context(context)
+			  context(std::move(context))
 		{
 		}
 
@@ -106,15 +113,21 @@ namespace rinha::interpreter
 
 	private:
 		const FnNode* node;
-		std::shared_ptr<Context> context;
+		boost::local_shared_ptr<Context> context;
 	};
 
 	class TupleValue final
 	{
 	public:
+		explicit TupleValue(Value&& first, Value&& second)
+			: first(boost::make_local_shared<Value>(std::move(first))),
+			  second(boost::make_local_shared<Value>(std::move(second)))
+		{
+		}
+
 		explicit TupleValue(const Value& first, const Value& second)
-			: first(std::make_shared<Value>(first)),
-			  second(std::make_shared<Value>(second))
+			: first(boost::make_local_shared<Value>(first)),
+			  second(boost::make_local_shared<Value>(second))
 		{
 		}
 
@@ -136,8 +149,8 @@ namespace rinha::interpreter
 		}
 
 	private:
-		std::shared_ptr<Value> first;
-		std::shared_ptr<Value> second;
+		boost::local_shared_ptr<Value> first;
+		boost::local_shared_ptr<Value> second;
 	};
 }  // namespace rinha::interpreter
 

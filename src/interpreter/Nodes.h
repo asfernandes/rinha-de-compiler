@@ -4,6 +4,9 @@
 #include "./Context.h"
 #include "./Values.h"
 #include "./Exceptions.h"
+#include "./Environment.h"
+#include <boost/smart_ptr/local_shared_ptr.hpp>
+#include <boost/smart_ptr/make_local_shared.hpp>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -77,7 +80,7 @@ namespace rinha::interpreter
 	class TermNode : public Node
 	{
 	public:
-		enum class Type
+		enum class Type : uint8_t
 		{
 			LITERAL,
 			TUPLE,
@@ -93,8 +96,7 @@ namespace rinha::interpreter
 
 	public:
 		virtual Type getType() const = 0;
-		virtual void compile(std::shared_ptr<Context> context) const = 0;
-		virtual Value execute(std::shared_ptr<Context> context) const = 0;
+		virtual void compile(boost::local_shared_ptr<Context> context) const = 0;
 	};
 
 	class LiteralNode final : public TypedNode<TermNode, TermNode::Type::LITERAL>
@@ -106,14 +108,9 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override { }
+		void compile(boost::local_shared_ptr<Context> context) const override { }
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			return value;
-		}
-
-	private:
+	public:
 		const Value value;
 	};
 
@@ -127,20 +124,13 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			first->compile(context);
 			second->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			const auto& firstValue = first->execute(context);
-			const auto& secondValue = second->execute(context);
-			return TupleValue(firstValue, secondValue);
-		}
-
-	private:
+	public:
 		const TermNode* const first;
 		const TermNode* const second;
 	};
@@ -155,7 +145,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			std::unordered_set<std::string> set;
 
@@ -164,11 +154,6 @@ namespace rinha::interpreter
 				if (!set.insert(parameter->name).second)
 					throw RinhaException("Duplicate parameter '" + parameter->name + "'.");
 			}
-		}
-
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			return FnValue(this, context);
 		}
 
 	public:
@@ -182,7 +167,7 @@ namespace rinha::interpreter
 			return body;
 		}
 
-	private:
+	public:
 		const std::vector<const ReferenceNode*> parameters;
 		const TermNode* const body;
 	};
@@ -197,7 +182,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			callee->compile(context);
 
@@ -205,36 +190,7 @@ namespace rinha::interpreter
 				argument->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			const auto& calleeValue = callee->execute(context);
-
-			if (const auto calleeValueFn = std::get_if<FnValue>(&calleeValue))
-			{
-				const auto fnNode = calleeValueFn->getValue();
-
-				if (fnNode->getParameters().size() != arguments.size())
-					throw RinhaException("Arguments and parameters count do not match.");
-
-				const auto calleeContext = std::make_shared<Context>(calleeValueFn->getContext());
-				auto argumentIt = arguments.begin();
-
-				for (const auto parameter : fnNode->getParameters())
-				{
-					calleeContext->createVariable(parameter->name);
-					calleeContext->setVariable(parameter->name, (*argumentIt)->execute(context));
-					++argumentIt;
-				}
-
-				fnNode->getBody()->compile(calleeContext);
-
-				return fnNode->getBody()->execute(calleeContext);
-			}
-
-			throw RinhaException("Cannot call a non-function.");
-		}
-
-	private:
+	public:
 		const TermNode* const callee;
 		const std::vector<const TermNode*> arguments;
 	};
@@ -268,153 +224,13 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			first->compile(context);
 			second->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			// TODO: Short circuit with logical operators.
-			const auto& firstValue = first->execute(context);
-			const auto& secondValue = second->execute(context);
-
-			switch (op)
-			{
-				case Op::ADD:
-					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-						secondInt = std::get_if<IntValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return IntValue(firstInt->getValue() + secondInt->getValue());
-					}
-					else if ((std::holds_alternative<StrValue>(firstValue) ||
-								 std::holds_alternative<IntValue>(firstValue)) &&
-						(std::holds_alternative<StrValue>(secondValue) ||
-							std::holds_alternative<IntValue>(secondValue)))
-					{
-						const auto& firstString = std::visit([](auto&& arg) { return arg.toString(); }, firstValue);
-						const auto& secondString = std::visit([](auto&& arg) { return arg.toString(); }, secondValue);
-						return StrValue(firstString + secondString);
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '+'.");
-
-				case Op::SUB:
-					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-						secondInt = std::get_if<IntValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return IntValue(firstInt->getValue() - secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '-'.");
-
-				case Op::MUL:
-					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-						secondInt = std::get_if<IntValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return IntValue(firstInt->getValue() * secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '*'.");
-
-				case Op::DIV:
-					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-						secondInt = std::get_if<IntValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return IntValue(firstInt->getValue() / secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '/'.");
-
-				case Op::REM:
-					if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-						secondInt = std::get_if<IntValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return IntValue(firstInt->getValue() % secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '%'.");
-
-				case Op::EQ:
-				case Op::NEQ:
-				case Op::LT:
-				case Op::GT:
-				case Op::LTE:
-				case Op::GTE:
-				{
-					if (firstValue.index() != secondValue.index())
-						throw RinhaException("Cannot compare the two values of different types.");
-
-					std::strong_ordering cmp = std::strong_ordering::equal;
-
-					if (const auto& firstVal = std::get_if<BoolValue>(&firstValue))
-						cmp = firstVal->getValue() <=> std::get_if<BoolValue>(&secondValue)->getValue();
-					else if (const auto& firstVal = std::get_if<IntValue>(&firstValue))
-						cmp = firstVal->getValue() <=> std::get_if<IntValue>(&secondValue)->getValue();
-					else if (const auto& firstVal = std::get_if<StrValue>(&firstValue))
-						cmp = firstVal->getValue() <=> std::get_if<StrValue>(&secondValue)->getValue();
-					else
-						throw RinhaException("Invalid datatypes with comparare operator.");
-
-					switch (op)
-					{
-						case Op::EQ:
-							return BoolValue(cmp == std::strong_ordering::equal);
-
-						case Op::NEQ:
-							return BoolValue(cmp != std::strong_ordering::equal);
-
-						case Op::LT:
-							return BoolValue(cmp == std::strong_ordering::less);
-
-						case Op::GT:
-							return BoolValue(cmp == std::strong_ordering::greater);
-
-						case Op::LTE:
-							return BoolValue(cmp != std::strong_ordering::greater);
-
-						case Op::GTE:
-							return BoolValue(cmp != std::strong_ordering::less);
-
-						default:
-							assert(false);
-					}
-
-					break;
-				}
-
-				case Op::AND:
-					if (const auto firstInt = std::get_if<BoolValue>(&firstValue),
-						secondInt = std::get_if<BoolValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return BoolValue(firstInt->getValue() && secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '&&'.");
-
-				case Op::OR:
-					if (const auto firstInt = std::get_if<BoolValue>(&firstValue),
-						secondInt = std::get_if<BoolValue>(&secondValue);
-						firstInt && secondInt)
-					{
-						return BoolValue(firstInt->getValue() || secondInt->getValue());
-					}
-					else
-						throw RinhaException("Invalid datatypes with operator '||'.");
-			}
-
-			assert(false);
-			throw std::logic_error("Invalid binary op");
-		}
-
-	private:
+	public:
 		const Op op;
 		const TermNode* const first;
 		const TermNode* const second;
@@ -431,24 +247,14 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			condition->compile(context);
 			then->compile(context);
 			otherwise->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			const auto& conditionValue = condition->execute(context);
-
-			if (const auto conditionValueBool = std::get_if<BoolValue>(&conditionValue))
-				return conditionValueBool->getValue() ? then->execute(context) : otherwise->execute(context);
-
-			throw RinhaException("Invalid datatype in if.");
-		}
-
-	private:
+	public:
 		const TermNode* const condition;
 		const TermNode* const then;
 		const TermNode* const otherwise;
@@ -466,22 +272,12 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			arg->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			const auto& value = arg->execute(context);
-
-			if (const auto conditionValueTuple = std::get_if<TupleValue>(&value))
-				return index == 0 ? conditionValueTuple->getFirst() : conditionValueTuple->getSecond();
-
-			throw RinhaException("Invalid datatype in tuple function.");
-		}
-
-	private:
+	public:
 		const TermNode* const arg;
 		const unsigned index;
 	};
@@ -495,14 +291,9 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override { }
+		void compile(boost::local_shared_ptr<Context> context) const override { }
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			return context->getVariable(reference->name);
-		}
-
-	private:
+	public:
 		const ReferenceNode* reference;
 	};
 
@@ -517,7 +308,7 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			context->createVariable(reference->name);
 
@@ -525,14 +316,7 @@ namespace rinha::interpreter
 			next->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			context->setVariable(reference->name, value->execute(context));
-
-			return next->execute(context);
-		}
-
-	private:
+	public:
 		const ReferenceNode* reference;
 		const TermNode* const value;
 		const TermNode* const next;
@@ -547,21 +331,12 @@ namespace rinha::interpreter
 		}
 
 	public:
-		void compile(std::shared_ptr<Context> context) const override
+		void compile(boost::local_shared_ptr<Context> context) const override
 		{
 			arg->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
-		{
-			const auto& value = arg->execute(context);
-
-			std::visit([&](auto&& arg) { context->getEnvironment()->printLine(arg.toString()); }, value);
-
-			return value;
-		}
-
-	private:
+	public:
 		const TermNode* const arg;
 	};
 }  // namespace rinha::interpreter

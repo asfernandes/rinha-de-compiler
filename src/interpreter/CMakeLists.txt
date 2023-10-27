@@ -11,7 +11,11 @@ file(GLOB_RECURSE TEST_SRC
 	"*.test.cpp"
 )
 
-find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+find_package(
+	Boost
+	REQUIRED COMPONENTS
+		unit_test_framework
+)
 
 
 foreach(item ${SRC})
@@ -23,6 +27,10 @@ endforeach()
 
 add_library(${PROJECT_NAME}-lib
 	${SRC}
+)
+
+target_include_directories(${PROJECT_NAME}-lib
+	PUBLIC ${Boost_INCLUDE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}-lib
