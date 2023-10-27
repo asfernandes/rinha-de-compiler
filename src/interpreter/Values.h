@@ -17,7 +17,7 @@ namespace rinha::interpreter
 	class BoolValue final
 	{
 	public:
-		explicit BoolValue(bool value)
+		explicit BoolValue(bool value) noexcept
 			: value(value)
 		{
 		}
@@ -39,7 +39,7 @@ namespace rinha::interpreter
 	class IntValue final
 	{
 	public:
-		explicit IntValue(int32_t value)
+		explicit IntValue(int32_t value) noexcept
 			: value(value)
 		{
 		}
@@ -61,6 +61,11 @@ namespace rinha::interpreter
 	class StrValue final
 	{
 	public:
+		explicit StrValue(std::string&& value) noexcept
+			: value(std::move(value))
+		{
+		}
+
 		explicit StrValue(const std::string& value)
 			: value(value)
 		{
@@ -83,7 +88,7 @@ namespace rinha::interpreter
 	class FnValue final
 	{
 	public:
-		explicit FnValue(const FnNode* node, std::shared_ptr<Context> context)
+		explicit FnValue(const FnNode* node, std::shared_ptr<Context> context) noexcept
 			: node(node),
 			  context(context)
 		{
@@ -112,6 +117,12 @@ namespace rinha::interpreter
 	class TupleValue final
 	{
 	public:
+		explicit TupleValue(Value&& first, Value&& second)
+			: first(std::make_shared<Value>(std::move(first))),
+			  second(std::make_shared<Value>(std::move(second)))
+		{
+		}
+
 		explicit TupleValue(const Value& first, const Value& second)
 			: first(std::make_shared<Value>(first)),
 			  second(std::make_shared<Value>(second))
