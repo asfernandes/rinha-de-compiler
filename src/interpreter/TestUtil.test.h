@@ -33,11 +33,8 @@ namespace rinha::interpreter
 			if (!result.diagnostics->hasError())
 			{
 				const auto parsedSource = parser.getParsedSource();
-				const auto term = parsedSource->getTerm();
 
-				const auto context = std::make_shared<Context>(result.environment);
-				term->compile(context);
-				result.value = term->execute(context);
+				result.value = Environment::run(result.environment, std::move(parsedSource));
 			}
 
 			return result;

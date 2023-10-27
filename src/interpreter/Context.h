@@ -1,7 +1,6 @@
 #ifndef RINHA_INTERPRETER_CONTEXT_H
 #define RINHA_INTERPRETER_CONTEXT_H
 
-#include "./Environment.h"
 #include "./Exceptions.h"
 #include "./Values.h"
 #include <optional>
@@ -11,6 +10,7 @@
 namespace rinha::interpreter
 {
 	class LetNode;
+	class Environment;
 
 	class Context final
 	{

@@ -4,6 +4,8 @@
 #include "./Context.h"
 #include "./Values.h"
 #include "./Exceptions.h"
+#include "./Environment.h"
+#include "./Task.h"
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -94,7 +96,7 @@ namespace rinha::interpreter
 	public:
 		virtual Type getType() const = 0;
 		virtual void compile(std::shared_ptr<Context> context) const = 0;
-		virtual Value execute(std::shared_ptr<Context> context) const = 0;
+		virtual Task execute(std::shared_ptr<Context> context) const = 0;
 	};
 
 	class LiteralNode final : public TypedNode<TermNode, TermNode::Type::LITERAL>
@@ -108,9 +110,9 @@ namespace rinha::interpreter
 	public:
 		void compile(std::shared_ptr<Context> context) const override { }
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			return value;
+			co_return value;
 		}
 
 	private:
@@ -133,11 +135,11 @@ namespace rinha::interpreter
 			second->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			const auto& firstValue = first->execute(context);
-			const auto& secondValue = second->execute(context);
-			return TupleValue(firstValue, secondValue);
+			const auto& firstValue = co_await first->execute(context);
+			const auto& secondValue = co_await second->execute(context);
+			co_return TupleValue(firstValue, secondValue);
 		}
 
 	private:
@@ -166,9 +168,9 @@ namespace rinha::interpreter
 			}
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			return FnValue(this, context);
+			co_return FnValue(this, context);
 		}
 
 	public:
@@ -205,9 +207,9 @@ namespace rinha::interpreter
 				argument->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			const auto& calleeValue = callee->execute(context);
+			const auto& calleeValue = co_await callee->execute(context);
 
 			if (const auto calleeValueFn = std::get_if<FnValue>(&calleeValue))
 			{
@@ -222,13 +224,13 @@ namespace rinha::interpreter
 				for (const auto parameter : fnNode->getParameters())
 				{
 					calleeContext->createVariable(parameter->name);
-					calleeContext->setVariable(parameter->name, (*argumentIt)->execute(context));
+					calleeContext->setVariable(parameter->name, co_await (*argumentIt)->execute(context));
 					++argumentIt;
 				}
 
 				fnNode->getBody()->compile(calleeContext);
 
-				return fnNode->getBody()->execute(calleeContext);
+				co_return co_await fnNode->getBody()->execute(calleeContext);
 			}
 
 			throw RinhaException("Cannot call a non-function.");
@@ -274,11 +276,11 @@ namespace rinha::interpreter
 			second->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
 			// TODO: Short circuit with logical operators.
-			const auto& firstValue = first->execute(context);
-			const auto& secondValue = second->execute(context);
+			const auto& firstValue = co_await first->execute(context);
+			const auto& secondValue = co_await second->execute(context);
 
 			switch (op)
 			{
@@ -287,7 +289,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<IntValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return IntValue(firstInt->getValue() + secondInt->getValue());
+						co_return IntValue(firstInt->getValue() + secondInt->getValue());
 					}
 					else if ((std::holds_alternative<StrValue>(firstValue) ||
 								 std::holds_alternative<IntValue>(firstValue)) &&
@@ -296,7 +298,7 @@ namespace rinha::interpreter
 					{
 						const auto& firstString = std::visit([](auto&& arg) { return arg.toString(); }, firstValue);
 						const auto& secondString = std::visit([](auto&& arg) { return arg.toString(); }, secondValue);
-						return StrValue(firstString + secondString);
+						co_return StrValue(firstString + secondString);
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '+'.");
@@ -306,7 +308,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<IntValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return IntValue(firstInt->getValue() - secondInt->getValue());
+						co_return IntValue(firstInt->getValue() - secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '-'.");
@@ -316,7 +318,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<IntValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return IntValue(firstInt->getValue() * secondInt->getValue());
+						co_return IntValue(firstInt->getValue() * secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '*'.");
@@ -326,7 +328,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<IntValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return IntValue(firstInt->getValue() / secondInt->getValue());
+						co_return IntValue(firstInt->getValue() / secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '/'.");
@@ -336,7 +338,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<IntValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return IntValue(firstInt->getValue() % secondInt->getValue());
+						co_return IntValue(firstInt->getValue() % secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '%'.");
@@ -365,22 +367,22 @@ namespace rinha::interpreter
 					switch (op)
 					{
 						case Op::EQ:
-							return BoolValue(cmp == std::strong_ordering::equal);
+							co_return BoolValue(cmp == std::strong_ordering::equal);
 
 						case Op::NEQ:
-							return BoolValue(cmp != std::strong_ordering::equal);
+							co_return BoolValue(cmp != std::strong_ordering::equal);
 
 						case Op::LT:
-							return BoolValue(cmp == std::strong_ordering::less);
+							co_return BoolValue(cmp == std::strong_ordering::less);
 
 						case Op::GT:
-							return BoolValue(cmp == std::strong_ordering::greater);
+							co_return BoolValue(cmp == std::strong_ordering::greater);
 
 						case Op::LTE:
-							return BoolValue(cmp != std::strong_ordering::greater);
+							co_return BoolValue(cmp != std::strong_ordering::greater);
 
 						case Op::GTE:
-							return BoolValue(cmp != std::strong_ordering::less);
+							co_return BoolValue(cmp != std::strong_ordering::less);
 
 						default:
 							assert(false);
@@ -394,7 +396,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<BoolValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return BoolValue(firstInt->getValue() && secondInt->getValue());
+						co_return BoolValue(firstInt->getValue() && secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '&&'.");
@@ -404,7 +406,7 @@ namespace rinha::interpreter
 						secondInt = std::get_if<BoolValue>(&secondValue);
 						firstInt && secondInt)
 					{
-						return BoolValue(firstInt->getValue() || secondInt->getValue());
+						co_return BoolValue(firstInt->getValue() || secondInt->getValue());
 					}
 					else
 						throw RinhaException("Invalid datatypes with operator '||'.");
@@ -438,12 +440,17 @@ namespace rinha::interpreter
 			otherwise->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			const auto& conditionValue = condition->execute(context);
+			const auto& conditionValue = co_await condition->execute(context);
 
 			if (const auto conditionValueBool = std::get_if<BoolValue>(&conditionValue))
-				return conditionValueBool->getValue() ? then->execute(context) : otherwise->execute(context);
+			{
+				if (conditionValueBool->getValue())
+					co_return co_await then->execute(context);
+				else
+					co_return co_await otherwise->execute(context);
+			}
 
 			throw RinhaException("Invalid datatype in if.");
 		}
@@ -471,12 +478,12 @@ namespace rinha::interpreter
 			arg->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			const auto& value = arg->execute(context);
+			const auto& value = co_await arg->execute(context);
 
 			if (const auto conditionValueTuple = std::get_if<TupleValue>(&value))
-				return index == 0 ? conditionValueTuple->getFirst() : conditionValueTuple->getSecond();
+				co_return index == 0 ? conditionValueTuple->getFirst() : conditionValueTuple->getSecond();
 
 			throw RinhaException("Invalid datatype in tuple function.");
 		}
@@ -497,9 +504,9 @@ namespace rinha::interpreter
 	public:
 		void compile(std::shared_ptr<Context> context) const override { }
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			return context->getVariable(reference->name);
+			co_return context->getVariable(reference->name);
 		}
 
 	private:
@@ -525,11 +532,11 @@ namespace rinha::interpreter
 			next->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			context->setVariable(reference->name, value->execute(context));
+			context->setVariable(reference->name, co_await value->execute(context));
 
-			return next->execute(context);
+			co_return co_await next->execute(context);
 		}
 
 	private:
@@ -552,13 +559,13 @@ namespace rinha::interpreter
 			arg->compile(context);
 		}
 
-		Value execute(std::shared_ptr<Context> context) const override
+		Task execute(std::shared_ptr<Context> context) const override
 		{
-			const auto& value = arg->execute(context);
+			const auto& value = co_await arg->execute(context);
 
 			std::visit([&](auto&& arg) { context->getEnvironment()->printLine(arg.toString()); }, value);
 
-			return value;
+			co_return value;
 		}
 
 	private:

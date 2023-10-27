@@ -1,12 +1,14 @@
 #ifndef RINHA_INTERPRETER_PARSED_SOURCE_H
 #define RINHA_INTERPRETER_PARSED_SOURCE_H
 
-#include "./Nodes.h"
 #include <memory>
 #include <unordered_set>
 
 namespace rinha::interpreter
 {
+	class Node;
+	class TermNode;
+
 	class ParsedSource final
 	{
 	public:

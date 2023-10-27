@@ -1,5 +1,5 @@
-#include "./Context.h"
 #include "./Environment.h"
+#include "./ParsedSource.h"
 #include "./Parser.h"
 #include <exception>
 #include <filesystem>
@@ -55,12 +55,8 @@ namespace rinha::interpreter
 			return 1;
 
 		const auto parsedSource = parser.getParsedSource();
-		const auto term = parsedSource->getTerm();
-
 		const auto environment = make_shared<StdEnvironment>();
-		const auto context = make_shared<Context>(environment);
-		term->compile(context);
-		term->execute(context);
+		Environment::run(std::move(environment), std::move(parsedSource));
 
 		return 0;
 	}
