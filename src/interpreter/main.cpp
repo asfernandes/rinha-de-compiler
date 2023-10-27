@@ -1,5 +1,5 @@
-#include "./CoroutineExecutionStrategy.h"
 #include "./Environment.h"
+#include "./EnvVarExecutionStrategy.h"
 #include "./ParsedSource.h"
 #include "./Parser.h"
 #include <boost/smart_ptr/make_local_shared.hpp>
@@ -58,7 +58,7 @@ namespace rinha::interpreter
 		const auto parsedSource = parser.getParsedSource();
 		const auto environment = make_local_shared<StdEnvironment>();
 
-		CoroutineExecutionStrategy executionStrategy;
+		EnvVarExecutionStrategy executionStrategy;
 		executionStrategy.run(std::move(environment), std::move(parsedSource));
 
 		return 0;

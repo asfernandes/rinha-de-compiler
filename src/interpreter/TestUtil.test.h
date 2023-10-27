@@ -1,11 +1,11 @@
 #ifndef RINHA_INTERPRETER_TEST_UTIL_H
 #define RINHA_INTERPRETER_TEST_UTIL_H
 
-#include "./CoroutineExecutionStrategy.h"
-#include "./Parser.h"
+#include "./Environment.test.h"
+#include "./EnvVarExecutionStrategy.h"
 #include "./Context.h"
 #include "./Diagnostic.h"
-#include "./Environment.test.h"
+#include "./Parser.h"
 #include <boost/smart_ptr/local_shared_ptr.hpp>
 #include <boost/smart_ptr/make_local_shared.hpp>
 #include <optional>
@@ -36,7 +36,7 @@ namespace rinha::interpreter
 			{
 				const auto parsedSource = parser.getParsedSource();
 
-				CoroutineExecutionStrategy executionStrategy;
+				EnvVarExecutionStrategy executionStrategy;
 				result.value = executionStrategy.run(result.environment, std::move(parsedSource));
 			}
 
