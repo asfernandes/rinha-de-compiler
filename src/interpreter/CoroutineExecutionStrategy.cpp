@@ -2,6 +2,7 @@
 #include "./Environment.h"
 #include "./Nodes.h"
 #include "./ParsedSource.h"
+#include "./Runtime.h"
 #include "./Task.h"
 #include "./TermNodeVisitor.h"
 #include "./Values.h"
@@ -66,143 +67,10 @@ namespace rinha::interpreter
 
 			Task visitBinaryOpNode(boost::local_shared_ptr<Context>& context, const BinaryOpNode* node)
 			{
-				// TODO: Short circuit with logical operators.
 				const auto& firstValue = co_await visit(context, node->first);
 				const auto& secondValue = co_await visit(context, node->second);
 
-				switch (node->op)
-				{
-					case BinaryOpNode::Op::ADD:
-						if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-							secondInt = std::get_if<IntValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return IntValue(firstInt->getValue() + secondInt->getValue());
-						}
-						else if ((std::holds_alternative<StrValue>(firstValue) ||
-									 std::holds_alternative<IntValue>(firstValue)) &&
-							(std::holds_alternative<StrValue>(secondValue) ||
-								std::holds_alternative<IntValue>(secondValue)))
-						{
-							const auto& firstString = std::visit([](auto&& arg) { return arg.toString(); }, firstValue);
-							const auto& secondString =
-								std::visit([](auto&& arg) { return arg.toString(); }, secondValue);
-							co_return StrValue(firstString + secondString);
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '+'.");
-
-					case BinaryOpNode::Op::SUB:
-						if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-							secondInt = std::get_if<IntValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return IntValue(firstInt->getValue() - secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '-'.");
-
-					case BinaryOpNode::Op::MUL:
-						if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-							secondInt = std::get_if<IntValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return IntValue(firstInt->getValue() * secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '*'.");
-
-					case BinaryOpNode::Op::DIV:
-						if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-							secondInt = std::get_if<IntValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return IntValue(firstInt->getValue() / secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '/'.");
-
-					case BinaryOpNode::Op::REM:
-						if (const auto firstInt = std::get_if<IntValue>(&firstValue),
-							secondInt = std::get_if<IntValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return IntValue(firstInt->getValue() % secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '%'.");
-
-					case BinaryOpNode::Op::EQ:
-					case BinaryOpNode::Op::NEQ:
-					case BinaryOpNode::Op::LT:
-					case BinaryOpNode::Op::GT:
-					case BinaryOpNode::Op::LTE:
-					case BinaryOpNode::Op::GTE:
-					{
-						if (firstValue.index() != secondValue.index())
-							throw RinhaException("Cannot compare the two values of different types.");
-
-						std::strong_ordering cmp = std::strong_ordering::equal;
-
-						if (const auto& firstVal = std::get_if<BoolValue>(&firstValue))
-							cmp = firstVal->getValue() <=> std::get_if<BoolValue>(&secondValue)->getValue();
-						else if (const auto& firstVal = std::get_if<IntValue>(&firstValue))
-							cmp = firstVal->getValue() <=> std::get_if<IntValue>(&secondValue)->getValue();
-						else if (const auto& firstVal = std::get_if<StrValue>(&firstValue))
-							cmp = firstVal->getValue() <=> std::get_if<StrValue>(&secondValue)->getValue();
-						else
-							throw RinhaException("Invalid datatypes with comparare operator.");
-
-						switch (node->op)
-						{
-							case BinaryOpNode::Op::EQ:
-								co_return BoolValue(cmp == std::strong_ordering::equal);
-
-							case BinaryOpNode::Op::NEQ:
-								co_return BoolValue(cmp != std::strong_ordering::equal);
-
-							case BinaryOpNode::Op::LT:
-								co_return BoolValue(cmp == std::strong_ordering::less);
-
-							case BinaryOpNode::Op::GT:
-								co_return BoolValue(cmp == std::strong_ordering::greater);
-
-							case BinaryOpNode::Op::LTE:
-								co_return BoolValue(cmp != std::strong_ordering::greater);
-
-							case BinaryOpNode::Op::GTE:
-								co_return BoolValue(cmp != std::strong_ordering::less);
-
-							default:
-								assert(false);
-						}
-
-						break;
-					}
-
-					case BinaryOpNode::Op::AND:
-						if (const auto firstInt = std::get_if<BoolValue>(&firstValue),
-							secondInt = std::get_if<BoolValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return BoolValue(firstInt->getValue() && secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '&&'.");
-
-					case BinaryOpNode::Op::OR:
-						if (const auto firstInt = std::get_if<BoolValue>(&firstValue),
-							secondInt = std::get_if<BoolValue>(&secondValue);
-							firstInt && secondInt)
-						{
-							co_return BoolValue(firstInt->getValue() || secondInt->getValue());
-						}
-						else
-							throw RinhaException("Invalid datatypes with operator '||'.");
-				}
-
-				assert(false);
-				throw std::logic_error("Invalid binary op");
+				co_return Runtime::binaryOp(node->op, firstValue, secondValue);
 			}
 
 			Task visitIfNode(boost::local_shared_ptr<Context>& context, const IfNode* node)
